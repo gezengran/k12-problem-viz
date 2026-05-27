@@ -1,0 +1,15 @@
+---
+description: Project-wide coding and delivery standards
+alwaysApply: true
+---
+
+# Project Coding Standards
+
+- Follow Google-style open source engineering practices.
+- Explain technical decisions in plain English before implementation details.
+- Prioritize readability and developer experience over clever shortcuts.
+- Remove dead or unused code instead of leaving it "just in case".
+- Fix type errors directly; do not silence or bypass type checks.
+- Identify potential risks in changes and propose actionable fixes.
+- Follow the existing project structure and naming conventions.
+- Keep outputs production-ready, with clear failure handling and validation.

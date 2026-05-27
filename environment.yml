@@ -1,0 +1,13 @@
+name: math
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - numpy
+  - sympy
+  - matplotlib
+  - pillow
+  - pytest
+  - ruff
+  - mypy
+  - pip

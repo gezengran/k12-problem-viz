@@ -1,0 +1,17 @@
+---
+description: Python + conda workflow for this repository
+globs: **/*.py
+alwaysApply: false
+---
+
+# Python + Conda Workflow
+
+- Use Python 3.11 in conda environment `math`.
+- Run Python commands via `conda run -n math python ...` for reproducibility.
+- **Layout**: per-problem folders `solve/<case_id>/` and `ami/<case_id>/`; exports must not leave that case's `ami/` folder.
+- Prefer `sympy` for symbolic derivations and `numpy` for numeric checks.
+- Keep functions small, typed, and easy to test.
+- Add a short "why" comment only when geometry/math logic is non-obvious.
+- Before finishing changes, run:
+  - `conda run -n math python -m pytest`
+  - `conda run -n math python -m ruff check .`
