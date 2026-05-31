@@ -75,10 +75,16 @@ class HeadDryResult:
 
 
 def head_dry_analysis(theta_deg: float = 60.0) -> HeadDryResult:
-    """Head dry when intersection height y_K >= body height."""
+    """Head dry when rain through A hits MN at/left of M (left-side criterion)."""
     tan_theta = math.tan(math.radians(theta_deg))
-    # y_K = 1.8 - tan(theta) * (0.5 + x) >= BODY_HEIGHT
-    x_max = (1.8 - BODY_HEIGHT) / tan_theta - 0.5
+    canopy_y = 1.8
+    # Why this boundary: top wetness is controlled by the left boundary rain line through A.
+    # Let H be where that rain line intersects MN (y=BODY_HEIGHT):
+    #   x_H = a_x + (BODY_HEIGHT - canopy_y) / tan(theta)
+    # Head stays dry iff H is at M or left of M, i.e. x_H <= 0.
+    # With scene-B geometry a_x = x - 0.3 (A is 0.5 m left of O, and O at FRONT_EDGE_X + x),
+    # the maximal allowed extension is:
+    x_max = -(BODY_HEIGHT - canopy_y) / tan_theta + 0.3
     if x_max >= 0.0:
         return HeadDryResult(
             any_head_dry_in_range=True,

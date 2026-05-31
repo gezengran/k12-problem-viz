@@ -64,8 +64,8 @@ def test_render_animation_style_no_crash():
 def test_export_boundary_static_b_and_c(tmp_path: Path):
     outputs = export_boundary_static_suite(tmp_path)
     assert outputs["b_boundary_no_head"].exists()
-    assert outputs["b_boundary_no_foot"].exists()
-    assert outputs["c_boundary"].exists()
+    assert outputs["c_boundary_no_foot"].exists()
+    assert outputs["c_boundary_no_head"].exists()
     assert outputs["b_boundary_no_head"].stat().st_size > 1000
 
 
@@ -87,8 +87,8 @@ def test_export_all_media_to_ami():
     out_dir = ami_dir(CASE_ID)
     outputs = export_all_media(out_dir)
     assert outputs["b_boundary_no_head"].exists()
-    assert outputs["b_boundary_no_foot"].exists()
-    assert outputs["c_boundary"].exists()
+    assert outputs["c_boundary_no_foot"].exists()
+    assert outputs["c_boundary_no_head"].exists()
     assert outputs["scene_b"].suffix == ".gif"
     assert outputs["scene_c"].suffix == ".gif"
     assert outputs["scene_b"].stat().st_size > 5000

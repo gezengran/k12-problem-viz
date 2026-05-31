@@ -39,9 +39,10 @@ def test_wet_length_scene_b_at_quarter():
     assert y == pytest.approx(1.8 - math.sqrt(3) * 0.75, abs=0.01)
 
 
-def test_head_not_dry_in_arm_range():
+def test_head_dry_exists_in_arm_range():
     result = head_dry_analysis(60.0)
-    assert result.any_head_dry_in_range is False
+    assert result.any_head_dry_in_range is True
+    assert "x <=" in result.message
 
 
 def test_min_eg_scene_c_exists_in_range():

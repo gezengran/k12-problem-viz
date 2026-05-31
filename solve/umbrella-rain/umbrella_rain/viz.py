@@ -233,6 +233,42 @@ def render_boundary_frame(
     return fig
 
 
+def render_scene_c_single_boundary(theta_deg: float, *, boundary: str) -> plt.Figure:
+    """Render one scene-C boundary: no_foot(K=P) or no_head(H=M)."""
+    from umbrella_rain.scenes import scene_c, scene_c_eg_h_at_m, scene_c_eg_k_at_foot
+
+    x_left = scene_c_eg_k_at_foot(theta_deg)
+    x_right = max(x_left, scene_c_eg_h_at_m(theta_deg))
+
+    if boundary == "no_foot":
+        x_val = x_left
+        caption = "C no-foot boundary: K at P"
+        line_color = "#1f78b4"
+    elif boundary == "no_head":
+        x_val = x_right
+        caption = "C no-head boundary: H at M"
+        line_color = "#33a02c"
+    else:
+        raise ValueError("boundary must be 'no_foot' or 'no_head'")
+
+    pose = scene_c(x_val, theta_deg)
+    fig = render_boundary_frame(pose, theta_deg, "c", caption=caption)
+    ax = fig.axes[0]
+
+    # Highlight the active boundary rain line for this single-boundary figure.
+    if boundary == "no_foot":
+        cx, cy = pose.point_c()
+        draw_rain_line_through(ax, cx, cy, theta_deg, color=line_color, linewidth=2.8, alpha=0.95)
+        ax.text(0.56, BODY_HEIGHT + 0.55, f"x_no_foot={x_val:.3f}", fontsize=10, color=line_color)
+    else:
+        a_x, a_y = pose.point_a()
+        draw_rain_line_through(ax, a_x, a_y, theta_deg, color=line_color, linewidth=2.8, alpha=0.95)
+        ax.text(0.56, BODY_HEIGHT + 0.55, f"x_no_head={x_val:.3f}", fontsize=10, color=line_color)
+
+    fig.tight_layout()
+    return fig
+
+
 def export_static(
     pose: UmbrellaPose,
     theta_deg: float,
@@ -255,12 +291,9 @@ def export_static(
 
 
 def export_boundary_static_suite(ami_dir: Path) -> dict[str, Path]:
-    """Export scene-B critical boundaries (no head / no foot) and scene-C boundary."""
+    """Export B no-head and split C no-foot/no-head boundary figures."""
     from umbrella_rain.scenes import (
-        min_eg_for_dry_scene_c,
-        scene_b_boundary_no_foot,
         scene_b_boundary_no_head,
-        scene_c,
     )
 
     static_dir = Path(ami_dir) / "static"
@@ -280,24 +313,18 @@ def export_boundary_static_suite(ami_dir: Path) -> dict[str, Path]:
         "b_boundary_no_head.png",
         "B boundary: rain via A along MQ (just misses head)",
     )
-    save_b(
-        scene_b_boundary_no_foot(),
-        "b_boundary_no_foot.png",
-        "B boundary: K at P (just misses feet)",
-    )
 
-    min_eg = min_eg_for_dry_scene_c(60.0)
-    eg = min_eg.min_eg if min_eg.min_eg is not None else 0.25
-    fig = render_boundary_frame(
-        scene_c(eg, 60.0),
-        60.0,
-        "c",
-        caption="C boundary: rotated, min EG for dry",
-    )
-    path_c = static_dir / "c_boundary.png"
-    fig.savefig(path_c, dpi=DPI, bbox_inches=None, pad_inches=0.05)
-    plt.close(fig)
-    outputs["c_boundary"] = path_c
+    fig_c_no_foot = render_scene_c_single_boundary(60.0, boundary="no_foot")
+    path_c_no_foot = static_dir / "c_boundary_no_foot.png"
+    fig_c_no_foot.savefig(path_c_no_foot, dpi=DPI, bbox_inches=None, pad_inches=0.05)
+    plt.close(fig_c_no_foot)
+    outputs["c_boundary_no_foot"] = path_c_no_foot
+
+    fig_c_no_head = render_scene_c_single_boundary(60.0, boundary="no_head")
+    path_c_no_head = static_dir / "c_boundary_no_head.png"
+    fig_c_no_head.savefig(path_c_no_head, dpi=DPI, bbox_inches=None, pad_inches=0.05)
+    plt.close(fig_c_no_head)
+    outputs["c_boundary_no_head"] = path_c_no_head
     return outputs
 
 

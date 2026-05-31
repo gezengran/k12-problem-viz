@@ -1,5 +1,3 @@
-import math
-
 import pytest
 
 from umbrella_rain.constants import ARM_EXTEND_MAX, BODY_HEIGHT, FRONT_EDGE_X
