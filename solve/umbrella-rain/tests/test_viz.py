@@ -1,3 +1,4 @@
+import platform
 from pathlib import Path
 
 import pytest
@@ -8,9 +9,12 @@ from umbrella_rain.constants import BODY_HEIGHT, CASE_ID, FRONT_EDGE_X
 from umbrella_rain.geometry import rain_line_height_at_x
 from umbrella_rain.scenes import scene_a, scene_b
 from umbrella_rain.viz import (
+    LIVE_PHOTO_SIZE,
     export_all_media,
+    export_animation,
     export_boundary_static_suite,
     export_static,
+    letterbox_image,
     portrait_aspect_ratio,
     rain_segment_span,
     render_frame,
@@ -82,6 +86,23 @@ def test_export_static_boundary_aspect(tmp_path: Path):
     assert h / w == pytest.approx(16 / 9, rel=0.05)
 
 
+def test_letterbox_image_matches_live_photo_size():
+    img = Image.new("RGB", (720, 1280), (200, 200, 200))
+    boxed = letterbox_image(img)
+    assert boxed.size == LIVE_PHOTO_SIZE
+
+
+def test_export_animation_gif(tmp_path: Path):
+    out = export_animation(
+        lambda i: (scene_b(0.5 * i / 4), 60.0),
+        5,
+        tmp_path / "demo.gif",
+        fps=10,
+    )
+    assert out.suffix == ".gif"
+    assert out.stat().st_size > 1000
+
+
 @pytest.mark.slow
 def test_export_all_media_to_ami():
     out_dir = ami_dir(CASE_ID)
@@ -89,8 +110,13 @@ def test_export_all_media_to_ami():
     assert outputs["b_boundary_no_head"].exists()
     assert outputs["c_boundary_no_foot"].exists()
     assert outputs["c_boundary_no_head"].exists()
-    assert outputs["scene_b"].suffix == ".gif"
-    assert outputs["scene_c"].suffix == ".gif"
-    assert outputs["scene_b"].stat().st_size > 5000
+    assert outputs["scene_b_gif"].suffix == ".gif"
+    assert outputs["scene_c_gif"].suffix == ".gif"
+    assert outputs["scene_b_gif"].stat().st_size > 5000
+    if platform.system() == "Darwin":
+        assert outputs["scene_b_live"].suffix == ".pvt"
+        assert outputs["scene_c_live"].suffix == ".pvt"
+        assert outputs["scene_b_live"].is_dir()
     assert "scene_a" not in outputs
     assert "b_boundary" not in outputs
+    assert "scene_b_webp" not in outputs

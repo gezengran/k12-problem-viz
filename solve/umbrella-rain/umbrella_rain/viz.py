@@ -3,6 +3,10 @@
 from __future__ import annotations
 
 import math
+import platform
+import shutil
+import subprocess
+import tempfile
 from pathlib import Path
 from typing import Callable
 
@@ -10,7 +14,8 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation, PillowWriter
+from matplotlib.animation import FuncAnimation
+from PIL import Image
 
 from umbrella_rain.constants import BODY_HEIGHT, BODY_WIDTH, FRONT_EDGE_X
 from umbrella_rain.geometry import rain_intersect_top_mn, rain_line_height_at_x
@@ -34,6 +39,8 @@ from umbrella_rain.viz_layers import (
 FIG_WIDTH = 9.0
 FIG_HEIGHT = 16.0
 DPI = 80
+# Live Photo still/video frame size (3:4, fits 9:16 diagram with letterboxing).
+LIVE_PHOTO_SIZE = (720, 960)
 
 
 def portrait_figsize() -> tuple[float, float]:
@@ -328,6 +335,135 @@ def export_boundary_static_suite(ami_dir: Path) -> dict[str, Path]:
     return outputs
 
 
+def _fig_to_rgb(fig: plt.Figure) -> Image.Image:
+    fig.canvas.draw()
+    width, height = fig.canvas.get_width_height()
+    buffer = fig.canvas.buffer_rgba()
+    return Image.frombytes("RGBA", (width, height), buffer).convert("RGB")
+
+
+def letterbox_image(img: Image.Image, size: tuple[int, int] = LIVE_PHOTO_SIZE) -> Image.Image:
+    """Scale to fit inside size, pad with white (Live Photo / Xiaohongshu 3:4)."""
+    target_w, target_h = size
+    src_w, src_h = img.size
+    scale = min(target_w / src_w, target_h / src_h)
+    new_w = max(1, int(src_w * scale))
+    new_h = max(1, int(src_h * scale))
+    resized = img.resize((new_w, new_h), Image.Resampling.LANCZOS)
+    canvas = Image.new("RGB", size, (255, 255, 255))
+    canvas.paste(resized, ((target_w - new_w) // 2, (target_h - new_h) // 2))
+    return canvas
+
+
+def _capture_animation_frames(
+    frames_builder: Callable[[int], tuple[UmbrellaPose, float]],
+    n_frames: int,
+    *,
+    dpi: int = DPI,
+) -> list[Image.Image]:
+    fig, ax = plt.subplots(figsize=portrait_figsize(), dpi=dpi)
+    frames: list[Image.Image] = []
+    try:
+        for i in range(n_frames):
+            ax.clear()
+            pose, theta = frames_builder(i)
+            render_frame(pose, theta, ax=ax, animation_style=True)
+            frames.append(_fig_to_rgb(fig))
+    finally:
+        plt.close(fig)
+    return frames
+
+
+def _save_animated_gif(frames: list[Image.Image], path: Path, *, fps: int) -> Path:
+    duration_ms = max(1, 1000 // fps)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    frames[0].save(
+        path,
+        save_all=True,
+        append_images=frames[1:],
+        duration=duration_ms,
+        loop=0,
+    )
+    return path
+
+
+def _save_mov_from_frames(frames: list[Image.Image], path: Path, *, fps: int) -> Path:
+    if shutil.which("ffmpeg") is None:
+        raise RuntimeError(
+            "MOV export requires ffmpeg on PATH. "
+            "Install with: conda install -n math -c conda-forge ffmpeg"
+        )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_dir = Path(tmp)
+        for i, frame in enumerate(frames):
+            frame.save(tmp_dir / f"frame_{i:04d}.png")
+        subprocess.run(
+            [
+                "ffmpeg",
+                "-y",
+                "-framerate",
+                str(fps),
+                "-i",
+                str(tmp_dir / "frame_%04d.png"),
+                "-c:v",
+                "libx264",
+                "-pix_fmt",
+                "yuv420p",
+                "-movflags",
+                "+faststart",
+                str(path),
+            ],
+            check=True,
+            capture_output=True,
+        )
+    return path
+
+
+def _try_export_live_photo(
+    frames: list[Image.Image],
+    base_path: Path,
+    *,
+    fps: int,
+) -> Path | None:
+    """Package JPEG+MOV as .pvt for Photos / AirDrop (macOS + makelive)."""
+    if platform.system() != "Darwin":
+        return None
+    try:
+        from makelive import save_live_photo_pair_as_pvt
+    except ImportError:
+        return None
+
+    jpg_path = base_path.with_suffix(".jpg")
+    mov_path = base_path.with_suffix(".mov")
+    letterbox_image(frames[0]).save(jpg_path, format="JPEG", quality=95)
+    xhs_frames = [letterbox_image(frame) for frame in frames]
+    _save_mov_from_frames(xhs_frames, mov_path, fps=fps)
+    # .pvt bundles still+video+metadata; AirDrop the package, not loose JPG/MOV files.
+    _, pvt_path = save_live_photo_pair_as_pvt(jpg_path, mov_path)
+    return pvt_path
+
+
+def export_animation_bundle(
+    stem: str,
+    frames_builder: Callable[[int], tuple[UmbrellaPose, float]],
+    n_frames: int,
+    ami_dir: Path,
+    *,
+    fps: int = 10,
+) -> dict[str, Path]:
+    """Render once; export Live Photo (.pvt) first, then GIF fallback."""
+    ami_dir = Path(ami_dir)
+    frames = _capture_animation_frames(frames_builder, n_frames)
+
+    outputs: dict[str, Path] = {}
+    live_pvt = _try_export_live_photo(frames, ami_dir / f"{stem}_live", fps=fps)
+    if live_pvt is not None:
+        outputs[f"{stem}_live"] = live_pvt
+    outputs[f"{stem}_gif"] = _save_animated_gif(frames, ami_dir / f"{stem}.gif", fps=fps)
+    return outputs
+
+
 def export_animation(
     frames_builder: Callable[[int], tuple[UmbrellaPose, float]],
     n_frames: int,
@@ -337,23 +473,30 @@ def export_animation(
     dpi: int = DPI,
 ) -> Path:
     path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-
-    fig, ax = plt.subplots(figsize=portrait_figsize())
-
-    def update(i: int) -> None:
-        ax.clear()
-        pose, theta = frames_builder(i)
-        render_frame(pose, theta, ax=ax, animation_style=True)
-
-    anim = FuncAnimation(fig, update, frames=n_frames, interval=1000 // fps)
     suffix = path.suffix.lower()
+    frames = _capture_animation_frames(frames_builder, n_frames, dpi=dpi)
     if suffix == ".gif":
-        anim.save(path, writer=PillowWriter(fps=fps), dpi=dpi)
-    else:
+        return _save_animated_gif(frames, path, fps=fps)
+    if suffix in {".mp4", ".mov", ".webm"}:
+        from matplotlib import animation as mpl_animation
+
+        if not mpl_animation.writers.is_available("ffmpeg"):
+            raise RuntimeError(
+                "Video export requires ffmpeg on PATH. "
+                "Install with: conda install -n math -c conda-forge ffmpeg"
+            )
+        fig, ax = plt.subplots(figsize=portrait_figsize())
+
+        def update(i: int) -> None:
+            ax.clear()
+            pose, theta = frames_builder(i)
+            render_frame(pose, theta, ax=ax, animation_style=True)
+
+        anim = FuncAnimation(fig, update, frames=n_frames, interval=1000 // fps)
         anim.save(path, writer="ffmpeg", fps=fps, dpi=dpi)
-    plt.close(fig)
-    return path
+        plt.close(fig)
+        return path
+    raise ValueError(f"Unsupported animation format: {path.suffix}")
 
 
 def export_all_media(ami_dir: Path) -> dict[str, Path]:
@@ -366,9 +509,7 @@ def export_all_media(ami_dir: Path) -> dict[str, Path]:
         x = 0.5 * i / 29
         return scene_b(x), 60.0
 
-    outputs["scene_b"] = export_animation(
-        frame_b, 30, Path(ami_dir) / "scene_b.gif", fps=10
-    )
+    outputs.update(export_animation_bundle("scene_b", frame_b, 30, ami_dir, fps=10))
 
     from umbrella_rain.scenes import build_scene_c_eg_timeline
 
@@ -378,8 +519,8 @@ def export_all_media(ami_dir: Path) -> dict[str, Path]:
         e = eg_timeline[i]
         return scene_c(e, 60.0), 60.0
 
-    outputs["scene_c"] = export_animation(
-        frame_c, len(eg_timeline), Path(ami_dir) / "scene_c.gif", fps=10
+    outputs.update(
+        export_animation_bundle("scene_c", frame_c, len(eg_timeline), ami_dir, fps=10)
     )
     return outputs
 
