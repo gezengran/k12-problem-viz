@@ -10,7 +10,8 @@ Multi-problem repo: each problem has a **case_id** (kebab-case, e.g. `umbrella-r
 - `solve/<case_id>/` — That problem's Python source and tests.
 - `ami/<case_id>/` — That problem's exported MP4/GIF/PNG only (no `.py`).
 - `solve/_common/` — Optional shared helpers (paths, fig aspect); no problem-specific logic.
-- `docs/` — PRD, tasks, junior write-ups (filename prefix matches case_id when possible).
+- `docs/<case_id>/` — That problem's PRD, tasks, junior write-ups, etc.
+- `docs/_common/` — Cross-case docs (shared export PRDs, runbooks); mirrors `solve/_common/`.
 - `pics/` — Reference images.
 
 Scripts under `solve/<case_id>/` must write exports only to `ami/<case_id>/`. Do not mix cases.

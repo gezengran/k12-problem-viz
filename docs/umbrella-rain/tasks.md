@@ -1,6 +1,6 @@
 # 雨天撑伞几何题 — 任务拆分
 
-**父级文档**：[umbrella-rain-geometry-prd.md](./umbrella-rain-geometry-prd.md)
+**父级文档**：[geometry-prd.md](./geometry-prd.md)
 
 **开发方式**：测试驱动开发（TDD），纵向 tracer bullet（一次一条测试 → 最少实现 → 通过 → 再写下一条）。禁止「先写完全部测试再写完全部实现」的横向切片。
 
@@ -292,7 +292,7 @@ conda run -n math python -m ruff check solve/umbrella-rain
 
 ### 要做什么
 
-在 `docs/umbrella-rain-solution-junior.md` 用初中语言写 (1)(2)(3) 完整推导：相似、三角、平行线；每问末尾用任务 6 的数值作「程序验算」对照表。不写坐标矩阵推导为主干。
+在 `docs/umbrella-rain/solution-junior.md` 用初中语言写 (1)(2)(3) 完整推导：相似、三角、平行线；每问末尾用任务 6 的数值作「程序验算」对照表。不写坐标矩阵推导为主干。
 
 ### 建议结构（非 TDD 代码，但可 checklist）
 
@@ -340,4 +340,4 @@ conda run -n math python -m ruff check solve/umbrella-rain
 
 - GitHub Issues：可将上表每条复制为独立 Issue，在「阻塞于」中填 Issue 号。
 - `.gitignore` 是否跟踪 `ami/<case_id>/*`：由仓库维护者决定，不影响任务顺序。
-- 新题 checklist：新建 `solve/<case_id>/`、`ami/<case_id>/`、`docs/<case_id>-*.md`，勿复用他题目录。
+- 新题 checklist：新建 `solve/<case_id>/`、`ami/<case_id>/`、`docs/<case_id>/`，勿复用他题目录。

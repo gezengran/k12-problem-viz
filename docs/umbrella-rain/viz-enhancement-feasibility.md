@@ -1,6 +1,6 @@
 # 可视化增强 — 可行性方案（已确认方向）
 
-**关联**：[umbrella-rain-geometry-prd.md](./umbrella-rain-geometry-prd.md) · [umbrella-rain-solution-junior.md](./umbrella-rain-solution-junior.md)  
+**关联**：[geometry-prd.md](./geometry-prd.md) · [solution-junior.md](./solution-junior.md)  
 **case_id**：`umbrella-rain`  
 **已确认**：静态图 **方案 A（多张细分 PNG）**；画风以 **初中几何关系** 为主线；**每个小场景讲清「什么不变、什么在变、图内有哪些几何关系」**，而非对比 x=0 / x=0.5 两帧的「两三角形相似」。
 
@@ -153,7 +153,7 @@ VARIABLE_ARM_X          VARIABLE_PK_LENGTH
 | **P1** | `viz_layers` 延长雨线 + `b_boundary.png` 样板 | ✅ 已实现 |
 | **P2** | `b_boundary.png`、`c_boundary.png` | ✅ 已实现 |
 | **P3** | 分镜 GIF（图2 按「不变→结构→变化」） |
-| **P4** | 讲解稿插图 + 与 `umbrella-rain-solution-junior.md` 对齐 |
+| **P4** | 讲解稿插图 + 与 `solution-junior.md` 对齐 |
 
 ---
 
@@ -169,6 +169,6 @@ VARIABLE_ARM_X          VARIABLE_PK_LENGTH
 
 ## 11. 下一步
 
-后续可在 `umbrella-rain-tasks.md` 增加任务 10+，按需在边界图上叠加「不变 / 结构 / 可变」高亮层。
+后续可在 `tasks.md` 增加任务 10+，按需在边界图上叠加「不变 / 结构 / 可变」高亮层。
 
 **图2 若需单独一帧讲「同图相似」**：是否在 `b02` 同一帧内增加「过 A / 过 C 雨线」构成的第二三角形？（可选，默认 Rt△ 主图已够；相似可作为拓展帧 `b02b`。）

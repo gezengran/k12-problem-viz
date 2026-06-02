@@ -52,7 +52,8 @@
 |------|------|
 | `solve/<case_id>/` | 该题的求解与可视化**源代码**、单元测试 |
 | `ami/<case_id>/` | 该题的动画与竖屏图形**导出产物**（MP4、GIF、PNG 等） |
-| `docs/` | 各题 PRD、任务拆分、初中讲解稿（文件名建议带 case 前缀） |
+| `docs/<case_id>/` | 该题 PRD、任务拆分、初中讲解稿等 |
+| `docs/_common/` | 跨题共用说明（与 `solve/_common/` 对应） |
 | `pics/` | 题目原图参考（可按题分子目录，可选） |
 
 **本题 case_id**：`umbrella-rain`  
@@ -64,7 +65,7 @@
 - 动画脚本在本题 `solve/umbrella-rain/` 内，运行后**只**写入 `ami/umbrella-rain/`（通过集中配置的路径函数，禁止写 sibling case 或其它目录）。
 - 各 case 的 `ami/<case_id>/` 仅存放生成物，可单独清理后重新导出；是否纳入版本库由 `.gitignore` 按 case 配置。
 
-**新增一题时**：选定 `case_id` → 创建 `solve/<case_id>/` 与 `ami/<case_id>/` → 在 `docs/` 增加对应 PRD/任务文档 → 测试与 CLI 仅针对该 case 路径运行。
+**新增一题时**：选定 `case_id` → 创建 `solve/<case_id>/`、`ami/<case_id>/`、`docs/<case_id>/` → 增加对应 PRD/任务文档 → 测试与 CLI 仅针对该 case 路径运行。
 
 ### 可视化与动画
 
@@ -72,7 +73,7 @@
 - 画布比例固定为 **9:16 竖屏**（例如宽 9 单位、高 16 单位，或像素级如 540×960），便于手机竖屏播放与课堂投屏。
 - **呈现原则（几何优先）**：图中突出初中几何关系（垂直、平行、直角三角形、同图内的相似/全等、角 `θ` 等），采用试卷作图记号；**不以**坐标轴、求交算法、`y=f(x)` 或代码变量作为画面主线。程序仅负责把点线算准。
 - **分场景三类信息**：每个小场景分别标明 **① 不变关系**（如 x 取何值都成立的平行/垂直/θ）、**② 同图内的几何结构**（单帧内的 Rt△、共角等）、**③ 随参数变化的量**（如 PK、EG）；**不以** x=0 与 x=0.5 并排作主图来讲「两状态三角形相似」。
-- 静态图：场景 B 两张临界边界与场景 C；最大伸手虚垂线在 **x=0.7**（G 极限位置），标注 **最远 x=0.5**。详见 [umbrella-rain-viz-enhancement-feasibility.md](./umbrella-rain-viz-enhancement-feasibility.md)。
+- 静态图：场景 B 两张临界边界与场景 C；最大伸手虚垂线在 **x=0.7**（G 极限位置），标注 **最远 x=0.5**。详见 [viz-enhancement-feasibility.md](./viz-enhancement-feasibility.md)。
 - 动画：分镜式 GIF，叙事顺序为 **不变 → 同图结构 → 参数变化**，而非参数扫描或跨状态相似对比。
 - 导出格式：静态 PNG；动画 GIF（可选 MP4）。全部写入 `ami/umbrella-rain/`。
 
@@ -108,5 +109,5 @@
 ## 其他说明
 
 - 模型优先保证可解释性，便于教学交流与代码审查。
-- 目录约定：本题 `solve/umbrella-rain/`、`ami/umbrella-rain/`；讲解稿如 `docs/umbrella-rain-solution-junior.md`。
+- 目录约定：本题 `solve/umbrella-rain/`、`ami/umbrella-rain/`、`docs/umbrella-rain/`（讲解稿见 `solution-junior.md`）。
 - 分享顺序建议：先看竖屏动画建立直觉 → 再跟初中数学手推步骤 → 最后用程序结果对照验算。
