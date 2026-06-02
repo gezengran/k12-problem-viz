@@ -169,4 +169,4 @@
 
 ---
 
-**状态**：已定稿，可进入任务拆分（`拆分任务`）或 Agent 实现（`ready-for-agent`）。
+**状态**：已定稿。任务拆分见 [xhs-live-photo-export-tasks.md](./xhs-live-photo-export-tasks.md)；可从任务 1 开始实现。

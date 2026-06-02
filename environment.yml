@@ -11,4 +11,5 @@ dependencies:
   - pytest
   - ruff
   - mypy
-  - pip
+  - pip:
+      - makelive

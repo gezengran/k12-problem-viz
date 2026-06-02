@@ -3,10 +3,6 @@
 from __future__ import annotations
 
 import math
-import platform
-import shutil
-import subprocess
-import tempfile
 from pathlib import Path
 from typing import Callable
 
@@ -15,6 +11,11 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+from live_photo_export import (
+    LIVE_PHOTO_SIZE,
+    export_live_photo_from_frames,
+    letterbox_image,
+)
 from PIL import Image
 
 from umbrella_rain.constants import BODY_HEIGHT, BODY_WIDTH, FRONT_EDGE_X
@@ -39,8 +40,6 @@ from umbrella_rain.viz_layers import (
 FIG_WIDTH = 9.0
 FIG_HEIGHT = 16.0
 DPI = 80
-# Live Photo still/video frame size (3:4, fits 9:16 diagram with letterboxing).
-LIVE_PHOTO_SIZE = (720, 960)
 
 
 def portrait_figsize() -> tuple[float, float]:
@@ -342,19 +341,6 @@ def _fig_to_rgb(fig: plt.Figure) -> Image.Image:
     return Image.frombytes("RGBA", (width, height), buffer).convert("RGB")
 
 
-def letterbox_image(img: Image.Image, size: tuple[int, int] = LIVE_PHOTO_SIZE) -> Image.Image:
-    """Scale to fit inside size, pad with white (Live Photo / Xiaohongshu 3:4)."""
-    target_w, target_h = size
-    src_w, src_h = img.size
-    scale = min(target_w / src_w, target_h / src_h)
-    new_w = max(1, int(src_w * scale))
-    new_h = max(1, int(src_h * scale))
-    resized = img.resize((new_w, new_h), Image.Resampling.LANCZOS)
-    canvas = Image.new("RGB", size, (255, 255, 255))
-    canvas.paste(resized, ((target_w - new_w) // 2, (target_h - new_h) // 2))
-    return canvas
-
-
 def _capture_animation_frames(
     frames_builder: Callable[[int], tuple[UmbrellaPose, float]],
     n_frames: int,
@@ -387,63 +373,6 @@ def _save_animated_gif(frames: list[Image.Image], path: Path, *, fps: int) -> Pa
     return path
 
 
-def _save_mov_from_frames(frames: list[Image.Image], path: Path, *, fps: int) -> Path:
-    if shutil.which("ffmpeg") is None:
-        raise RuntimeError(
-            "MOV export requires ffmpeg on PATH. "
-            "Install with: conda install -n math -c conda-forge ffmpeg"
-        )
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory() as tmp:
-        tmp_dir = Path(tmp)
-        for i, frame in enumerate(frames):
-            frame.save(tmp_dir / f"frame_{i:04d}.png")
-        subprocess.run(
-            [
-                "ffmpeg",
-                "-y",
-                "-framerate",
-                str(fps),
-                "-i",
-                str(tmp_dir / "frame_%04d.png"),
-                "-c:v",
-                "libx264",
-                "-pix_fmt",
-                "yuv420p",
-                "-movflags",
-                "+faststart",
-                str(path),
-            ],
-            check=True,
-            capture_output=True,
-        )
-    return path
-
-
-def _try_export_live_photo(
-    frames: list[Image.Image],
-    base_path: Path,
-    *,
-    fps: int,
-) -> Path | None:
-    """Package JPEG+MOV as .pvt for Photos / AirDrop (macOS + makelive)."""
-    if platform.system() != "Darwin":
-        return None
-    try:
-        from makelive import save_live_photo_pair_as_pvt
-    except ImportError:
-        return None
-
-    jpg_path = base_path.with_suffix(".jpg")
-    mov_path = base_path.with_suffix(".mov")
-    letterbox_image(frames[0]).save(jpg_path, format="JPEG", quality=95)
-    xhs_frames = [letterbox_image(frame) for frame in frames]
-    _save_mov_from_frames(xhs_frames, mov_path, fps=fps)
-    # .pvt bundles still+video+metadata; AirDrop the package, not loose JPG/MOV files.
-    _, pvt_path = save_live_photo_pair_as_pvt(jpg_path, mov_path)
-    return pvt_path
-
-
 def export_animation_bundle(
     stem: str,
     frames_builder: Callable[[int], tuple[UmbrellaPose, float]],
@@ -452,16 +381,11 @@ def export_animation_bundle(
     *,
     fps: int = 10,
 ) -> dict[str, Path]:
-    """Render once; export Live Photo (.pvt) first, then GIF fallback."""
+    """Render once; export Live Photo (.pvt) for Xiaohongshu (strict on macOS)."""
     ami_dir = Path(ami_dir)
     frames = _capture_animation_frames(frames_builder, n_frames)
-
-    outputs: dict[str, Path] = {}
-    live_pvt = _try_export_live_photo(frames, ami_dir / f"{stem}_live", fps=fps)
-    if live_pvt is not None:
-        outputs[f"{stem}_live"] = live_pvt
-    outputs[f"{stem}_gif"] = _save_animated_gif(frames, ami_dir / f"{stem}.gif", fps=fps)
-    return outputs
+    result = export_live_photo_from_frames(frames, ami_dir / f"{stem}_live", fps=fps)
+    return {f"{stem}_live": result.pvt}
 
 
 def export_animation(

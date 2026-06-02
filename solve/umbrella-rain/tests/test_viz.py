@@ -104,19 +104,18 @@ def test_export_animation_gif(tmp_path: Path):
 
 
 @pytest.mark.slow
+@pytest.mark.skipif(platform.system() != "Darwin", reason="Live Photo export requires macOS")
 def test_export_all_media_to_ami():
     out_dir = ami_dir(CASE_ID)
     outputs = export_all_media(out_dir)
     assert outputs["b_boundary_no_head"].exists()
     assert outputs["c_boundary_no_foot"].exists()
     assert outputs["c_boundary_no_head"].exists()
-    assert outputs["scene_b_gif"].suffix == ".gif"
-    assert outputs["scene_c_gif"].suffix == ".gif"
-    assert outputs["scene_b_gif"].stat().st_size > 5000
-    if platform.system() == "Darwin":
-        assert outputs["scene_b_live"].suffix == ".pvt"
-        assert outputs["scene_c_live"].suffix == ".pvt"
-        assert outputs["scene_b_live"].is_dir()
+    assert "scene_b_gif" not in outputs
+    assert "scene_c_gif" not in outputs
+    assert outputs["scene_b_live"].suffix == ".pvt"
+    assert outputs["scene_c_live"].suffix == ".pvt"
+    assert outputs["scene_b_live"].is_dir()
     assert "scene_a" not in outputs
     assert "b_boundary" not in outputs
     assert "scene_b_webp" not in outputs
