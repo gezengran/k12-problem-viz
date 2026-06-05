@@ -19,16 +19,18 @@
 |---------|------|
 | [umbrella-rain](docs/umbrella-rain/solution-junior.md) | 雨天撑伞（几何淋湿区域） |
 | [compound-growth](docs/compound-growth/runbook.md) | 日积月累示范（`y=x²` vs `y=1.01^x` → Live Photo） |
+| [plank-block-friction](docs/plank-block-friction/runbook.md) | 木板–滑块动摩擦方向（双屏 9:16 MP4） |
 
 ## Setup
 
 ```bash
 conda env create -f environment.yml   # env name: math
 conda activate math
-export PYTHONPATH="solve/_common:solve/umbrella-rain:solve/compound-growth"
+export PYTHONPATH="solve/_common:solve/umbrella-rain:solve/compound-growth:solve/plank-block-friction"
 pytest -q
 ./solve/umbrella-rain/run.sh
 ./solve/compound-growth/run.sh      # macOS only → .pvt
+./solve/plank-block-friction/run.sh # → ami/plank-block-friction/*.mp4
 ```
 
 ### 小红书 Live Photo（`.pvt`）
