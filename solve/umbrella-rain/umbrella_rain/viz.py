@@ -11,11 +11,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
-from live_photo_export import (
-    LIVE_PHOTO_SIZE,
-    export_live_photo_from_frames,
-    letterbox_image,
-)
+from live_photo_export import export_live_photo_from_frames
 from PIL import Image
 
 from umbrella_rain.constants import BODY_HEIGHT, BODY_WIDTH, FRONT_EDGE_X
