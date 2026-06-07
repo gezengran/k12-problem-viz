@@ -1,0 +1,2 @@
+# macOS only — PyObjC / makelive cannot install on Linux CI.
+makelive

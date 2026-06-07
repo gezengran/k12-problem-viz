@@ -9,10 +9,11 @@ conda env update -f environment.yml
 conda activate math
 ```
 
-需要 **ffmpeg**（MP4 / MOV）与 **makelive**（Live Photo，pip，已在 `environment.yml`）：
+需要 **ffmpeg**（conda）与 **makelive**（仅 macOS，见 `requirements-macos.txt`）：
 
 ```bash
 conda install -n math -c conda-forge ffmpeg
+pip install -r requirements-macos.txt   # macOS only
 ```
 
 ## 测试
@@ -68,7 +69,7 @@ Live 导出默认**仅保留** `.pvt`（打包后删除散装 `.jpg`/`.mov`）�
 
 | 现象 | 处理 |
 |------|------|
-| 缺少 makelive | `conda env update -f environment.yml` |
+| 缺少 makelive | `pip install -r requirements-macos.txt`（仅 macOS） |
 | 缺少 ffmpeg | `conda install -n math -c conda-forge ffmpeg` |
 | 非 macOS 报错 | Live 仅支持 macOS；MP4 可在任意平台导出 |
 | 相册无 Live | 确认 AirDrop 的是 `.pvt` 目录包 |

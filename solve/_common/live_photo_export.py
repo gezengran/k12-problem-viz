@@ -69,7 +69,7 @@ def _require_makelive() -> None:
     if save_live_photo_pair_as_pvt is None:
         raise LiveExportError(
             "Live Photo export requires the makelive package. "
-            "Install with: conda env update -f environment.yml"
+            "On macOS: pip install -r requirements-macos.txt"
         )
 
 

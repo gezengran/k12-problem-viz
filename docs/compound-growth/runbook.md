@@ -5,11 +5,12 @@
 ## 环境
 
 - **macOS**（必须；Linux/CI 无法打包 `.pvt`）
-- Conda 环境 `math`，已安装 `ffmpeg`（conda）与 `makelive`（pip，见根目录 `environment.yml`）
+- Conda 环境 `math`，已安装 `ffmpeg`（conda）与 `makelive`（仅 macOS，见根目录 `requirements-macos.txt`）
 
 ```bash
 conda env update -f environment.yml
 conda activate math
+pip install -r requirements-macos.txt
 ```
 
 ## 生成
@@ -32,6 +33,6 @@ export PYTHONPATH="solve/_common:solve/compound-growth"
 | 现象 | 处理 |
 |------|------|
 | 报错需要 macOS | 在 Mac 上执行 `run.sh` |
-| 缺少 makelive | `conda env update -f environment.yml` |
+| 缺少 makelive | `pip install -r requirements-macos.txt` |
 | 缺少 ffmpeg | `conda install -n math -c conda-forge ffmpeg` |
 | 相册无 Live | 确认 AirDrop 的是 `.pvt` 目录包，不是单张 JPG |

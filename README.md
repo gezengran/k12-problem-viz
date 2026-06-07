@@ -19,13 +19,14 @@
 |---------|------|
 | [umbrella-rain](docs/umbrella-rain/solution-junior.md) | 雨天撑伞（几何淋湿区域） |
 | [compound-growth](docs/compound-growth/runbook.md) | 日积月累示范（`y=x²` vs `y=1.01^x` → Live Photo） |
-| [plank-block-friction](docs/plank-block-friction/runbook.md) | 木板–滑块动摩擦方向（双屏 9:16 MP4） |
+| [plank-block-friction](docs/plank-block-friction/runbook.md) | 木板–滑块动摩擦方向（4:3 三视角 MP4 / Live） |
 
 ## Setup
 
 ```bash
 conda env create -f environment.yml   # env name: math
 conda activate math
+pip install -r requirements-macos.txt  # macOS only, for Live Photo export
 export PYTHONPATH="solve/_common:solve/umbrella-rain:solve/compound-growth:solve/plank-block-friction"
 pytest -q
 ./solve/umbrella-rain/run.sh
