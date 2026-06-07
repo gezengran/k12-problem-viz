@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [main]
 
+defaults:
+  run:
+    # Login shell so setup-miniconda's activate persists into ruff/pytest steps.
+    shell: bash -l {0}
+
 jobs:
   test:
     runs-on: ubuntu-latest
