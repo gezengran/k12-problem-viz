@@ -4,17 +4,16 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
+from live_photo_export import LIVE_PHOTO_SIZE, letterbox_image
 from paths import ami_dir
 from umbrella_rain.constants import BODY_HEIGHT, CASE_ID, FRONT_EDGE_X
 from umbrella_rain.geometry import rain_line_height_at_x
 from umbrella_rain.scenes import scene_a, scene_b
 from umbrella_rain.viz import (
-    LIVE_PHOTO_SIZE,
     export_all_media,
     export_animation,
     export_boundary_static_suite,
     export_static,
-    letterbox_image,
     portrait_aspect_ratio,
     rain_segment_span,
     render_frame,
