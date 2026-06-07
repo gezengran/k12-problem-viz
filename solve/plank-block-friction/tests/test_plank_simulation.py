@@ -1,7 +1,13 @@
 """Tests for 1D block–plank simulation."""
 
-from plank_block_friction.constants import G, V0
-from plank_block_friction.simulation import SimConfig, first_sync_time, run_simulation
+from plank_block_friction.constants import BLOCK_CENTER_OFFSET_MIN, G, V0
+from plank_block_friction.presets import sim_config_for_preset
+from plank_block_friction.simulation import (
+    SimConfig,
+    first_sync_time,
+    run_simulation,
+    sample_at_time,
+)
 
 
 def _cfg(mu1: float, mu2: float) -> SimConfig:
@@ -42,9 +48,17 @@ def test_higher_mu2_reaches_sync_sooner():
 
 
 def test_preset1_sync_time_in_expected_band():
-    t_sync = first_sync_time(_cfg(0.0, 0.2))
-    # M=15m, mu2=0.2, v0=4 => t_sync = v0 / (mu2*g*(1+m/M)) ≈ 1.875 s
-    assert 1.6 <= t_sync <= 2.1
+    t_sync = first_sync_time(_cfg(0.0, 1.0))
+    # M=15m, mu2=1.0, v0=4 => t_sync = v0 / (mu2*g*(1+m/M)) ≈ 0.375 s
+    assert 0.30 <= t_sync <= 0.45
+
+
+def test_preset1_block_not_at_left_edge_at_sync():
+    traj = run_simulation(sim_config_for_preset("preset-1"), 12.0)
+    assert traj.t_sync is not None
+    sample = sample_at_time(traj, traj.t_sync)
+    offset = sample.x_block - sample.x_plank
+    assert offset > BLOCK_CENTER_OFFSET_MIN + 0.1
 
 
 def test_preset3_plank_decelerates_after_sync():

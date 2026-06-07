@@ -4,8 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from plank_block_friction.constants import END_HOLD_SECONDS, PRESET_IDS
-from plank_block_friction.contact import first_leave_plank_time
+from plank_block_friction.constants import PRESET_IDS
 from plank_block_friction.simulation import SimConfig, run_simulation
 
 
@@ -24,16 +23,16 @@ _PRESETS: dict[str, Preset] = {
     "preset-1": Preset(
         preset_id="preset-1",
         mu1=0.0,
-        mu2=0.2,
+        mu2=1.0,
         tail_seconds=1.0,
-        title="基准：板–地光滑",
+        title="基准：板–地光滑，较高 μ₂",
     ),
     "preset-2": Preset(
         preset_id="preset-2",
         mu1=0.0,
-        mu2=0.6,
+        mu2=1.5,
         tail_seconds=1.0,
-        title="强耦合：高 μ₂",
+        title="强耦合：更高 μ₂",
     ),
     "preset-3": Preset(
         preset_id="preset-3",
@@ -57,14 +56,13 @@ def sim_config_for_preset(preset_id: str) -> SimConfig:
 
 
 def animation_duration(preset_id: str) -> float:
-    """End when the block falls off the plank; if it never does, end at co-speed."""
+    """Physics ends at first co-speed plus preset-specific tail."""
+    preset = get_preset(preset_id)
     config = sim_config_for_preset(preset_id)
     traj = run_simulation(config, 12.0)
-    t_leave = first_leave_plank_time(traj)
-    # Simulation ran full horizon without leaving → block stayed on board (e.g. preset-2).
-    if t_leave >= 11.5 and traj.t_sync is not None:
-        return traj.t_sync + END_HOLD_SECONDS
-    return t_leave + END_HOLD_SECONDS
+    if traj.t_sync is None:
+        raise ValueError(f"co-speed not reached for {preset_id!r}")
+    return traj.t_sync + preset.tail_seconds
 
 
 def all_preset_ids() -> tuple[str, ...]:

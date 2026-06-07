@@ -2,10 +2,29 @@
 
 **父级文档**：[prd.md](./prd.md)
 
-**开发方式**：测试驱动开发（TDD），纵向 tracer bullet（一次一条测试 → 最少实现 → 通过 → 再写下一条）。禁止「先写完全部测试再写完全部实现」的横向切片。
+**开发方式**：测试驱动开发（TDD），纵向 tracer bullet（一次一条测试 → 最少实现 → 通过 → 再写下一条）。
 
 **本题 case_id**：`plank-block-friction`  
 **目录约定**：源代码与测试在 `solve/plank-block-friction/`；动画导出到 `ami/plank-block-friction/`（见 PRD）。
+
+---
+
+## v2 迭代摘要（2026-06 已落地）
+
+相对 v1 任务表，实现阶段完成以下**设计转向**（详见 PRD「迭代记录」）：
+
+| 变更项 | 原任务描述 | 当前实现 |
+|--------|------------|----------|
+| 画幅与布局 | 9:16 上下双屏 `render_dual_frame` | **4:3 满幅**单视角：`render_ground_frame` / `render_block_frame` / `render_plank_frame` |
+| 导出形态 | 每预设一条双屏 `preset-N.mp4` | **preset-1** 三条：`preset-1-{ground,block,plank}.mp4` |
+| 共动视野 | 下屏窄窗放大 | 与地面系同为 **8 m** 跨度 |
+| 滑块初位 | 偏左叙事 | **板中**（`BLOCK_INITIAL_OFFSET_FRAC=0.50`） |
+| \(\mu_2\) | preset-1: 0.2 | preset-1: **1.0**；preset-2: **1.5** |
+| 第三视角 | 未规划 | **木板视角** `VIEW_PLANK=plank` |
+| 接触模型 | 可离板 | **板端 clamp** 教学模型（不离板） |
+| 共速高亮 | 下屏 | **三视角字幕**；block / plank 另加接触高亮 |
+
+**当前 tracer bullet 闭环**：任务 0–4 + v2 扩展（plank 视角、三文件导出）已在代码与 `ami/` 产物中验证。
 
 ---
 
@@ -15,15 +34,7 @@
 
 1. **红**：写一条描述**可观察行为**的测试（只走公共 API），运行并确认失败。
 2. **绿**：写最少产品代码使该测试通过。
-3. **重构**（可选）：在全部相关测试仍绿的前提下整理结构；禁止在仍为红时重构。
-
-测试风格：
-
-- 使用 `pytest`；测试放在 `solve/plank-block-friction/tests/`。
-- 测行为（速度、共速时刻、摩擦方向符号、文件是否生成、画布比例），不测私有函数名或积分器内部步长。
-- 地面–板摩擦质量约定（\(f_1=\mu_1 M g\) 或 \(M+m\) 等效）在**首条相关测试**中锁定，后续测试沿用同一约定。
-
-运行命令（与项目规则一致）：
+3. **重构**（可选）：在全部相关测试仍绿的前提下整理结构。
 
 ```bash
 export PYTHONPATH="solve/_common:solve/plank-block-friction"
@@ -35,236 +46,213 @@ conda run -n math python -m ruff check solve/plank-block-friction
 
 ## 任务总览
 
-| # | 标题 | 类型 | 阻塞于 | 用户故事 |
-|---|------|------|--------|----------|
-| 0 | 测试骨架与路径常量 | AFK | — | 6, 7 |
-| 1 | 1D 双体仿真与共速检测 | AFK | 0 | 6 |
-| 2 | 三预设注册与时长策略 | AFK | 1 | 4 |
-| 3 | 9:16 上下双屏单帧渲染 | AFK | 1 | 1, 2 |
-| 4 | preset-1 完整 MP4（含共速高亮） | AFK | 2, 3 | 1, 2, 3, 5 |
-| 5 | preset-2 / preset-3 MP4 | AFK | 4 | 4 |
-| 6 | 统一导出 CLI 与 runbook | AFK | 5 | 5, 7 |
-| 7 | macOS Live Photo 可选导出 | AFK | 6 | 5 |
+| # | 标题 | 类型 | 状态 | 阻塞于 | 用户故事 |
+|---|------|------|------|--------|----------|
+| 0 | 测试骨架与路径常量 | AFK | **完成** | — | 6, 7 |
+| 1 | 1D 双体仿真与共速检测 | AFK | **完成** | 0 | 6 |
+| 2 | 三预设注册与时长策略 | AFK | **完成**（\(\mu_2\) 已按 v2 更新） | 1 | 4 |
+| 3 | 单视角帧渲染（ground / block / plank） | AFK | **完成** | 1 | 1, 2 |
+| 4 | preset-1 三视角 MP4（含共速高亮） | AFK | **完成** | 2, 3 | 1, 2, 3, 5 |
+| 5 | preset-2 / preset-3 全视角 MP4 | AFK | **待做** | 4 | 4 |
+| 6 | 统一导出 CLI 与 runbook | AFK | **部分完成** | 5 | 5, 7 |
+| 7 | macOS Live Photo 可选导出 | AFK | **完成**（preset-1 三视角） | 6 | 5 |
 
-**已确认范围**：不包含讲解稿（原任务 8 已取消）。
-
-**首发 tracer bullet**：任务 0 → 1（一条「有相对滑动时 \(f\) 与 \(v_{\text{rel}}\) 反向」测试 + 最少仿真实现）。
+**已确认范围**：不包含讲解稿（`solution-junior.md`）。
 
 ---
 
 ## 任务 0：测试骨架与路径常量
 
-**类型**：AFK  
-**阻塞于**：无，可立即开始  
-**覆盖用户故事**：6, 7
-
-### 要做什么
-
-建立 `solve/plank-block-friction/`、`ami/plank-block-friction/`；`pytest` 可发现测试；通过公共 API 锁定 **case_id**、\(g\)、\(v_0\)、\(M/m\) 等默认常量及 `ami` 输出目录可写。
-
-### TDD 步骤（示例顺序）
-
-| 步骤 | 红（先写测试） | 绿（最少实现） |
-|------|----------------|----------------|
-| 0.1 | `pytest` 发现 `solve/plank-block-friction/tests` 并通过空套件 | `conftest.py` |
-| 0.2 | `ami_dir("plank-block-friction")` 指向本题 `ami` 且可创建 | 复用 `solve/_common/paths` |
-| 0.3 | 默认常量：`g=10`、`v_0=4`、`mass_ratio=15` | `constants.py` |
+**状态**：**完成**
 
 ### 验收标准
 
-- [ ] `conda run -n math python -m pytest solve/plank-block-friction/tests` 退出码为 0
-- [ ] `solve/plank-block-friction/` 与 `ami/plank-block-friction/` 已创建
-- [ ] `ruff check solve/plank-block-friction` 无错误
-- [ ] 测试不依赖未实现的仿真或绘图逻辑
+- [x] `pytest solve/plank-block-friction/tests` 通过
+- [x] `constants.py`：`g=10`、`v_0=4`、`mass_ratio=15`、`CASE_ID`
+- [x] `ami_dir("plank-block-friction")` 可写
+- [x] v2 增补：`VIEW_GROUND/BLOCK/PLANK`、`FIG_WIDTH/HEIGHT`（4:3）、`LAB_VIEW_X_SPAN=8`
 
 ---
 
 ## 任务 1：1D 双体仿真与共速检测
 
-**类型**：AFK  
-**阻塞于**：0  
-**覆盖用户故事**：6
+**状态**：**完成**
 
 ### 要做什么
 
-实现端到端仿真内核：\(t=0\) 全静止，\(t=0^+\) 木板突获 \(v_0\)；板–块动摩擦与可选板–地摩擦；输出时间序列（\(v_{\text{块}}, v_{\text{板}}, v_{\text{rel}}\)，是否处于板–块动摩擦、是否画地面摩擦）；检测**首次共速时刻** \(t_{\text{sync}}\)。
-
-### TDD 步骤
-
-| 步骤 | 红 | 绿 |
-|------|----|----|
-| 1.1 | \(\mu_1=0,\mu_2=0.2\)：\(t>0\) 且有相对滑动时，\(f\) 方向与 \(\operatorname{sgn}(v_{\text{rel}})\) 相反 | `simulation.py` 或等价公共 API |
-| 1.2 | 共速后 \(|v_{\text{rel}}|\) 保持 \(<\varepsilon\)（固定 \(\varepsilon\) 写入测试） | 分段积分 / 事件检测 |
-| 1.3 | \(\mu_1=0,\mu_2=0.6\) 的 \(t_{\text{sync}}\) **小于** \(\mu_2=0.2\) 情形 | preset-2 快于 preset-1 |
-| 1.4 | \(\mu_1=0.15,\mu_2=0.2\)：共速后一段时间内 \(v_{\text{板}}\) 单调减小 | preset-3 地面耗散 |
-| 1.5 | \(t_{\text{sync}}\) 对 preset-1 落在合理区间（如 0.5–1.2 s 量级，容差写明） | 防回归黄金区间 |
+\(t=0\) 全静止，\(t=0^+\) 木板突获 \(v_0\)；板–块 / 板–地动摩擦；输出时间序列与 \(t_{\text{sync}}\)；**板端 clamp** 保持滑块在木板段内。
 
 ### 验收标准
 
-- [ ] 公共 API 为「配置 in → 轨迹 out」，不暴露积分器内部状态
-- [ ] 板–地摩擦质量约定在 1.4 或首条 \(\mu_1>0\) 测试中写死
-- [ ] 不实现撞墙、反弹、二维
+- [x] 有相对滑动时 \(f\) 与 \(\operatorname{sgn}(v_{\text{rel}})\) 相反
+- [x] 共速后 \(|v_{\text{rel}}|\) 保持 \(<\varepsilon\)
+- [x] preset-2 共速早于 preset-1（\(\mu_2=1.5\) vs \(1.0\)）
+- [x] preset-3 共速后 \(v_{\text{板}}\) 单调减小
+- [x] v2：preset-1 共速时块–板偏移不在左端（`test_preset1_block_not_at_left_edge_at_sync`）
+
+### TDD 步骤（已实现）
+
+| 步骤 | 测试要点 | 模块 |
+|------|----------|------|
+| 1.1 | 摩擦方向与 \(v_{\text{rel}}\) 反向 | `simulation.py` |
+| 1.2 | 共速后 \(v_{\text{rel}}\) 近零 | 事件检测 |
+| 1.3 | 高 \(\mu_2\) 更早共速 | presets 集成 |
+| 1.4 | preset-3 地面耗散 | |
+| 1.5 | preset-1 \(t_{\text{sync}}\approx 0.38\,\text{s}\)（\(\mu_2=1.0\)） | 更新黄金区间 |
 
 ---
 
 ## 任务 2：三预设注册与时长策略
 
-**类型**：AFK  
-**阻塞于**：1  
-**覆盖用户故事**：4
+**状态**：**完成**（参数已按 v2 PRD 更新）
 
-### 要做什么
+### 当前预设表（与代码 `presets.py` 一致）
 
-注册 **preset-1 / preset-2 / preset-3** 的 \((\mu_1,\mu_2)\) 与 PRD 一致的**共速后续播时长**（1 s / 1 s / 2 s）；由 `preset_id` 返回仿真配置 + 动画总时长 \(T = t_{\text{sync}} + \Delta t_{\text{tail}}\)（每预设 \(\Delta t_{\text{tail}}\) 不同，不拉齐绝对时长）。
-
-### TDD 步骤
-
-| 步骤 | 红 | 绿 |
-|------|----|----|
-| 2.1 | `preset("preset-1")` 的 \(\mu_1=0,\mu_2=0.2\)，tail=1 s | `presets.py` |
-| 2.2 | `preset("preset-2")` 的 \(\mu_2=0.6\)，tail=1 s | |
-| 2.3 | `preset("preset-3")` 的 \(\mu_1=0.15,\mu_2=0.2\)，tail=2 s | |
-| 2.4 | `animation_duration(preset_id)` 等于该预设仿真得到的 \(t_{\text{sync}}+\) tail（容差内） | 与任务 1 集成 |
+| preset_id | \(\mu_1\) | \(\mu_2\) | tail |
+|-----------|----------|----------|------|
+| preset-1 | 0 | **1.0** | 1 s |
+| preset-2 | 0 | **1.5** | 1 s |
+| preset-3 | 0.15 | 0.2 | 2 s |
 
 ### 验收标准
 
-- [ ] 未知 `preset_id` 失败行为明确（异常或 Result）
-- [ ] 测试只读预设表，不硬编码在 viz 里
+- [x] `get_preset` / `sim_config_for_preset` / `animation_duration`
+- [x] `animation_duration` = \(t_{\text{sync}}+\) tail（容差内）
+- [x] 未知 `preset_id` 抛 `KeyError`
 
 ---
 
-## 任务 3：9:16 上下双屏单帧渲染
+## 任务 3：单视角帧渲染（ground / block / plank）
 
-**类型**：AFK  
-**阻塞于**：1  
-**覆盖用户故事**：1, 2
+**状态**：**完成**（由原「9:16 双屏」任务改写）
 
 ### 要做什么
 
-对给定时刻状态渲染**一帧**竖屏图：上屏「地面系」含 \(v_{\text{块}}, v_{\text{板}}\)；下屏「滑块视角」共动（滑块固定于画面参考位），含 \(v_{\text{rel}}\) 与板–块 \(f\)（同色、反向）；角标「地面系」「滑块视角」；共用图例；画布 **9:16**。
+对给定时刻状态渲染**一帧** 4:3 满幅图：
 
-### TDD 步骤
+| 函数 | 参考系 | 标注 |
+|------|--------|------|
+| `render_ground_frame` | 固定 \([0,8]\,\text{m}\) | \(v_{\text{块}}, v_{\text{板}}\) |
+| `render_block_frame` | 滑块共动，块居中 | \(v_{\text{rel}}, f\)（在滑块上） |
+| `render_plank_frame` | 木板共动，板居中 | \(v_{\text{rel}}, f\)（在木板上） |
 
-| 步骤 | 红 | 绿 |
-|------|----|----|
-| 3.1 | `render_dual_frame(state)` 不抛错 | `viz.py` |
-| 3.2 | 图高/宽比在 \(16/9\) 容差内 | 复用 `_common` portrait 约定 |
-| 3.3 | 有相对滑动时：下屏 \(f\) 与 \(v_{\text{rel}}\) 反向（可用箭头夹角或符号断言） | 向量层 |
-| 3.4 | 输出写入 `ami/plank-block-friction/` 下测试用 PNG 且非空 | 路径冒烟 |
-| 3.5 | 下屏背景/木板有相对运动视觉（条纹或位移），且不改变 3.3 方向关系 | 共动增强 |
+角标「地面系」「滑块视角」「木板视角」；共动系地面条纹滚动；`export_frame_png(sample, view, path)`。
 
 ### 验收标准
 
-- [ ] 单帧即可演示双屏反差（不必等 MP4）
-- [ ] 不画惯性力/科氏力
-- [ ] 共速高亮**不在**本任务强制（留给任务 4）
+- [x] 三 `render_*_frame` 冒烟不抛错
+- [x] 画幅比例 4:3（`figure_aspect_ratio ≈ 3/4`）
+- [x] 等比例米制：\( \Delta x / \Delta y = 4/3 \) 数据跨度
+- [x] ground 与共动系水平跨度均为 8 m
+- [x] block 视角不标 \(v_{\text{块}}, v_{\text{板}}\)（仅 \(v_{\text{rel}}, f\)）
+- [x] block 视角：滑块固定在 `BLOCK_ANCHOR_X`；plank 视角：板左缘固定在 `PLANK_ANCHOR_X - L/2`
+- [x] `render_dual_frame` 保留作遗留调试，非发布路径
+
+### TDD 步骤（已实现）
+
+| 步骤 | 测试文件 | 要点 |
+|------|----------|------|
+| 3.1 | `test_plank_viz.py` | 三视角渲染 |
+| 3.2 | `test_plank_viz.py` | 4:3 比例 |
+| 3.3 | `test_plank_viz.py` | \(f \perp v_{\text{rel}}\) |
+| 3.4 | `test_plank_viz.py` | PNG 导出冒烟 |
+| 3.5 | `test_plank_viz.py` | 共动系滚动 vs 固定地纹 |
+| 3.6 | `test_plank_viz.py` | `test_plank_panel_pins_plank_and_scrolls_ground` |
 
 ---
 
-## 任务 4：preset-1 完整 MP4（含共速高亮）
+## 任务 4：preset-1 三视角 MP4（含共速高亮）
 
-**类型**：AFK  
-**阻塞于**：2, 3  
-**覆盖用户故事**：1, 2, 3, 5
+**状态**：**完成**
 
 ### 要做什么
 
-为 **preset-1** 生成完整竖屏 MP4：从 \(t=0\) 到 \(t_{\text{sync}}+1\,\text{s}\)；在 \(t_{\text{sync}}\) 附近触发**共速高亮**（字幕或等价提示：\(v_{\text{rel}}=0\)，动摩擦消失）；共速后下屏不再画板–块 \(f\)。
+为 **preset-1** 导出三条 MP4，物理时长 \(t_{\text{sync}}+1\,\text{s}\)，播放拉伸约 5 s：
 
-### TDD 步骤
+- `preset-1-ground.mp4`
+- `preset-1-block.mp4`（共速高亮）
+- `preset-1-plank.mp4`（共速高亮）
 
-| 步骤 | 红 | 绿 |
-|------|----|----|
-| 4.1 | `export_mp4("preset-1")` 在 `ami/plank-block-friction/` 生成 `preset-1.mp4`（或约定 stem） | `matplotlib.animation` + ffmpeg |
-| 4.2 | 文件存在、扩展名正确、大小 > 阈值 | 冒烟 |
-| 4.3 | 帧数对应时长 > 0（如 ≥ 30 帧） | 基本完整性 |
-| 4.4 | 共速后区间内测试/元数据断言：板–块动摩擦标志为 false | 与高亮叙事一致 |
-| 4.5 | （可选 `@pytest.mark.slow`）全片导出；CI 可只测短片段 | `conftest` marker |
+API：`export_view_mp4(preset_id, view)`、`export_classic_preset1()`。
 
 ### 验收标准
 
-- [ ] 第一条可课堂播放的端到端动图（tracer bullet 闭环）
-- [ ] 产物仅落在 `ami/plank-block-friction/`
-- [ ] MP4 为主，不依赖 GIF
+- [x] 三条 MP4 写入 `ami/plank-block-friction/`
+- [x] 960×720（4:3）
+- [x] 短 MP4 冒烟（`test_export_view_mp4_smoke`）
+- [x] 慢测 `test_export_classic_preset1_full`（`@pytest.mark.slow`）
+- [x] CLI：`python -m plank_block_friction` 打印三路径
+
+### TDD 步骤（已实现）
+
+| 步骤 | 要点 |
+|------|------|
+| 4.1 | `export_view_mp4` + ffmpeg |
+| 4.2 | 文件非空 |
+| 4.3 | `export_classic_preset1` 返回三键 |
+| 4.4 | block/plank 在 \(t_{\text{sync}}\) 后 1 s 内高亮 |
 
 ---
 
-## 任务 5：preset-2 / preset-3 MP4
+## 任务 5：preset-2 / preset-3 全视角 MP4
 
-**类型**：AFK  
-**阻塞于**：4  
-**覆盖用户故事**：4
+**状态**：**待做**
+
+**阻塞于**：4
 
 ### 要做什么
 
-复用任务 4 管线导出 **preset-2**（\(\mu_2=0.6\)，共速后 1 s）与 **preset-3**（\(\mu_1=0.15\)，共速后 2 s）。preset-3 在**共速后**上屏补充**地面摩擦力**箭头，板–块界面不画 \(f\)。
+复用任务 4 管线，为 **preset-2**、**preset-3** 各导出 `ground` / `block` / `plank` 三条 MP4（共 6 条）。preset-3 在**共速后** ground 视角补充 \(f_{\text{地}}\)。
 
 ### TDD 步骤
 
 | 步骤 | 红 | 绿 |
 |------|----|----|
-| 5.1 | `preset-2.mp4` 生成且 \(t_{\text{sync}}\) 短于 preset-1（由仿真元数据或旁路断言） | 导出 |
-| 5.2 | `preset-3.mp4` 生成且时长 ≈ \(t_{\text{sync}}+2\,\text{s}\) | 导出 |
-| 5.3 | preset-3 共速后：上屏存在地面摩擦指示（测试可通过帧采样或导出回调标志） | 条件渲染 |
-| 5.4 | 三条 MP4 均 9:16、双屏角标存在 | 与任务 3 一致 |
+| 5.1 | `export_all_presets()` 或扩展 CLI 导出 9 条（3 预设 × 3 视角） | 聚合导出 |
+| 5.2 | preset-2 的 \(t_{\text{sync}} <\) preset-1（元数据断言） | |
+| 5.3 | preset-3 共速后 ground 帧含地面摩擦指示 | 条件渲染 |
+| 5.4 | 九条 MP4 均为 4:3 | 与任务 3 一致 |
 
 ### 验收标准
 
-- [ ] `ami/plank-block-friction/` 下三条命名 MP4 齐全
+- [ ] `ami/plank-block-friction/` 下 preset-2/3 各三视角 MP4 齐全
 - [ ] preset-3 叙事与 PRD「共速后仅地面摩擦」一致
 
 ---
 
 ## 任务 6：统一导出 CLI 与 runbook
 
-**类型**：AFK  
-**阻塞于**：5  
-**覆盖用户故事**：5, 7
+**状态**：**部分完成**
 
-### 要做什么
+### 已完成
 
-提供 `python -m plank_block_friction`（或等价入口）一次导出三预设 MP4；在 `docs/plank-block-friction/` 增加简短 **runbook**（环境、`PYTHONPATH`、pytest、导出命令、产物路径）。
+- [x] `python -m plank_block_friction` 导出 preset-1 三视角
+- [x] `./solve/plank-block-friction/run.sh`
+- [x] `runbook.md` 存在（**待同步 v2 产物说明**）
 
-### TDD 步骤
+### 待完成
 
-| 步骤 | 红 | 绿 |
-|------|----|----|
-| 6.1 | `export_all_presets()` 返回三路径且文件均存在 | 聚合模块 |
-| 6.2 | CLI 退出码 0，stdout 含三预设 stem 或成功标记 | `__main__.py` |
-| 6.3 | 集成测试：CLI 后 `ami` 内三 MP4 非空 | 防漂移 |
-| 6.4 | `runbook.md` 存在且含 conda/pytest/导出命令 | 文档 |
-
-### 验收标准
-
-- [ ] 一条命令可复现三预设 MP4
-- [ ] 可视化不渗入仿真内核（保持模块边界）
-- [ ] README 根表可链到本题 runbook（可选一行，非阻塞）
+- [ ] 更新 `runbook.md`：4:3、三视角命名、\(\mu_2=1.0\)、无离板结束
+- [ ] 任务 5 完成后：`export_all_presets()` 覆盖三预设 × 三视角
+- [ ] （可选）根 `README` Cases 表增加本题一行
 
 ---
 
 ## 任务 7：macOS Live Photo 可选导出
 
-**类型**：AFK  
-**阻塞于**：6  
-**覆盖用户故事**：5
+**状态**：**完成**（preset-1 三视角）
 
 ### 要做什么
 
-在 macOS 上提供 `run.sh`：在 MP4 已存在前提下，将指定预设（或全部）打包为 `.pvt`，写入 `ami/plank-block-friction/`；复用 `solve/_common` Live Photo 导出器；非 macOS 调用**严格失败**并给出可读错误。
-
-### TDD 步骤
-
-| 步骤 | 红 | 绿 |
-|------|----|----|
-| 7.1 | 非 Darwin 调用 Live 导出 API 抛错且消息含 macOS | 与 `_common` 先例一致 |
-| 7.2 | （macOS 本地/可选 CI）`run.sh` 产出至少一个 `.pvt` | `run.sh` + 文档 |
-| 7.3 | runbook 补充 AirDrop / 小红书说明，指向 `docs/_common/xhs-live-photo-export.md` | 文档 |
+macOS 上 `run.sh` / `python -m plank_block_friction` 在 MP4 后导出 Live Photo；非 macOS 仅 MP4。
 
 ### 验收标准
 
-- [ ] Live Photo **不**作为 v1 阻塞项；MP4 无 `.pvt` 仍算任务 6 完成
-- [ ] 不以 GIF 作为小红书兜底
-- [ ] `run.sh` 仅在本题 `solve` 目录，不写 sibling `ami`
+- [x] 非 Darwin 调用 `export_view_live` 失败且消息可读（`test_live_export_requires_macos`）
+- [x] macOS slow 测三视角 `.pvt` 冒烟
+- [x] `export_view_live` / `export_classic_preset1_live` 接入 `_common/live_photo_export`
+- [x] 产物：`preset-1-{ground,block,plank}_live.pvt`（默认不保留散装 `.jpg`/`.mov`）
+- [x] `runbook.md` 已更新发布说明
 
 ---
 
@@ -272,42 +260,51 @@ conda run -n math python -m ruff check solve/plank-block-friction
 
 ```text
 0 → 1 → 2 ─┐
-      └→ 3 ─┼→ 4 → 5 → 6 → 7
+      └→ 3 ─┼→ 4 [完成] → 5 → 6（收尾文档）→ 7
 ```
 
 ---
 
-## 与 PRD 的追溯
+## 与 PRD 的追溯（v2）
 
-| PRD 交付项 | 任务 |
-|------------|------|
-| 1D 仿真、摩擦方向、共速 | 1 |
-| 三预设 \(\mu\) 与续播 1s/1s/2s | 2, 5 |
-| 9:16 上惯性 / 下共动、标注 B | 3, 4, 5 |
-| 共速高亮 | 4 |
-| preset-3 共速后地面摩擦 | 5 |
-| 三条 MP4 | 4, 5, 6 |
-| Live Photo 可选 | 7 |
-| `ami/plank-block-friction/` 唯一导出 | 0, 4–7 |
+| PRD 交付项 | 任务 | 状态 |
+|------------|------|------|
+| 1D 仿真、摩擦方向、共速、板端 clamp | 1 | 完成 |
+| 三预设 \(\mu\) 与续播 | 2 | 完成 |
+| 4:3 满幅单视角 ground/block/plank | 3 | 完成 |
+| preset-1 三视角 MP4 + 共速高亮 | 4 | 完成 |
+| preset-2/3 全视角 MP4 | 5 | 待做 |
+| CLI + runbook | 6 | 部分 |
+| Live Photo 可选（preset-1 三视角） | 7 | 完成 |
+| `ami/plank-block-friction/` 唯一导出 | 0, 4–7 | 完成（preset-1） |
+
+---
+
+## v2 决策追溯（对话 → 代码）
+
+| 决策 | 代码 / 产物落点 |
+|------|----------------|
+| 取消双屏拼图 | `viz.py` 单视角 `render_*_frame`；`export_classic_preset1` |
+| 4:3 满幅 | `constants.py` `FIG_WIDTH/HEIGHT`；`viz._configure_full_bleed` |
+| 共动系不放大 | `BLOCK_VIEW_X_SPAN = LAB_VIEW_X_SPAN = 8` |
+| 滑块初位板中 | `BLOCK_INITIAL_OFFSET_FRAC = 0.50` |
+| 提高 \(\mu_2\) 避免共速在板左缘 | `presets.py` preset-1 \(\mu_2=1.0\) |
+| 木板视角 | `VIEW_PLANK`、`render_plank_frame`、`preset-1-plank.mp4` |
+| 木板 2.5 m 示意 | `PLANK_LENGTH = 2.5` |
+| 播放拉伸 5 s | `PLAYBACK_SECONDS=5`, `EXPORT_FPS=10` |
 
 ---
 
 ## 发布为 GitHub Issue（可选）
 
-批准本任务表后，可按上表每条创建 Issue，正文使用 [拆分任务 skill](../.cursor/skills/拆分任务/templates/issue-slice-template.md) 模板：
-
-- **父级**：链接 `docs/plank-block-friction/prd.md` 或仓库 Tracking Issue
-- **阻塞于**：填依赖任务对应 Issue 号
-- 若仓库有 `ready-for-agent` 类标签，**AFK** 任务可加上
-
-建议创建顺序：**0 → 1 → 2 → 3 → 4 → 5 → 6 → 7**，以便「阻塞于」引用真实编号。
+批准后可按任务表创建 Issue；当前 **任务 5–7** 为剩余可领取切片。
 
 ---
 
-## 后续可选（不在当前切片内）
+## 后续可选（不在当前阻塞路径）
 
-- 初中物理讲解稿（`solution-junior.md`，已明确不做）
-- 共速关键帧 PNG 讲义插图
-- 第四预设、交互扫参、GIF 副产品
-- `pytest.ini` / 根 `README` Cases 表增加 `plank-block-friction` 一行
-- CI 将 `solve/plank-block-friction` 纳入默认 `pytest` 路径
+- 共速关键帧 PNG（三视角各一帧）
+- 初中生讲解稿
+- 交互扫参、GIF 副产品
+- CI 默认纳入 `solve/plank-block-friction`
+- 更新 `runbook.md` 与 PRD 保持同步（任务 6 收尾）

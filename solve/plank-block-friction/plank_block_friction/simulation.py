@@ -5,8 +5,15 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 
-from plank_block_friction.constants import G, MASS_RATIO, V0, V_REL_EPS
-from plank_block_friction.constants import BLOCK_INITIAL_CENTER_OFFSET
+from plank_block_friction.constants import (
+    BLOCK_CENTER_OFFSET_MAX,
+    BLOCK_CENTER_OFFSET_MIN,
+    BLOCK_INITIAL_CENTER_OFFSET,
+    G,
+    MASS_RATIO,
+    V0,
+    V_REL_EPS,
+)
 
 
 def _sign(v: float, *, eps: float = 1e-12) -> int:
@@ -140,6 +147,12 @@ def run_simulation(
         x_plank += v_plank * dt
         v_block += a_b * dt
         v_plank += a_p * dt
+        # Teaching model: block stays on the plank segment (no fall-off).
+        offset = x_block - x_plank
+        if offset < BLOCK_CENTER_OFFSET_MIN:
+            x_block = x_plank + BLOCK_CENTER_OFFSET_MIN
+        elif offset > BLOCK_CENTER_OFFSET_MAX:
+            x_block = x_plank + BLOCK_CENTER_OFFSET_MAX
         t += dt
         record()
 

@@ -5,18 +5,19 @@ from plank_block_friction.presets import (
     get_preset,
     sim_config_for_preset,
 )
+from plank_block_friction.simulation import run_simulation
 
 
 def test_preset1_parameters():
     p = get_preset("preset-1")
     assert p.mu1 == 0.0
-    assert p.mu2 == 0.2
+    assert p.mu2 == 1.0
     assert p.tail_seconds == 1.0
 
 
 def test_preset2_parameters():
     p = get_preset("preset-2")
-    assert p.mu2 == 0.6
+    assert p.mu2 == 1.5
     assert p.tail_seconds == 1.0
 
 
@@ -32,20 +33,18 @@ def test_unknown_preset_raises():
         get_preset("preset-99")
 
 
-def test_animation_duration_ends_after_block_leaves_plank():
-    from plank_block_friction.constants import END_HOLD_SECONDS
-    from plank_block_friction.contact import first_leave_plank_time
-    from plank_block_friction.simulation import run_simulation
-
+def test_animation_duration_is_sync_plus_tail():
     for pid in ("preset-1", "preset-2", "preset-3"):
+        preset = get_preset(pid)
         cfg = sim_config_for_preset(pid)
         traj = run_simulation(cfg, 12.0)
+        assert traj.t_sync is not None
         dur = animation_duration(pid)
-        assert dur < 2.0
-        assert END_HOLD_SECONDS == 0.0
-        if pid in ("preset-1", "preset-3"):
-            t_leave = first_leave_plank_time(traj)
-            assert abs(dur - t_leave) < 0.02
-        if pid == "preset-2":
-            assert traj.t_sync is not None
-            assert abs(dur - traj.t_sync) < 0.05
+        assert abs(dur - (traj.t_sync + preset.tail_seconds)) < 0.02
+
+
+def test_preset2_sync_sooner_than_preset1():
+    t1 = run_simulation(sim_config_for_preset("preset-1"), 12.0).t_sync
+    t2 = run_simulation(sim_config_for_preset("preset-2"), 12.0).t_sync
+    assert t1 is not None and t2 is not None
+    assert t2 < t1

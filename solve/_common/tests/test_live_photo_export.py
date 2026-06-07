@@ -80,7 +80,12 @@ def test_keep_intermediates_true_keeps_jpg_mov(
     pvt_dir = tmp_path / "stem.pvt"
     pvt_dir.mkdir()
     mock_pvt.return_value = (None, pvt_dir)
-    mock_mov.side_effect = lambda frames, path, fps: path
+    def _write_mov(frames, path, fps):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b"mock-mov")
+        return path
+
+    mock_mov.side_effect = _write_mov
 
     result = export_live_photo_from_frames(
         _rgb_frames(2),
