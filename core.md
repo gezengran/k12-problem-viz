@@ -1,0 +1,1 @@
+Core creative concept: To transform abstract knowledge into visible animation.
